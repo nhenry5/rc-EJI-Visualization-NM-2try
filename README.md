@@ -36,7 +36,7 @@ Finally, we’ll show what we found and explain what it means for New Mexico. We
 My task was to manage the github repository and help to find the data we used for this project. in addition, as the PM of the group it is my responsibility to ensure that all of the necessary steps in the project are completed before the deadline.
 
 #### Noah Henry:  
-My task was to draft the project abstract to define the purpose of the project
+My task was to draft the project abstract to define the purpose of the project, fix/finish data processing, make slideshow for presentation.
 
 #### Riley Cochrell:  
 I created a rough plan of approach for the project and will be doing data cleaning and processing, Github workflow management, and helping others where needed.
