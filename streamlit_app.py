@@ -2,9 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-import plotly.express as px
 from scipy import stats 
-import json 
 
 # ------------------------------
 # Page Config
@@ -59,45 +57,37 @@ with st.sidebar:
     st.page_link("pages/2_EJI_Scale_and_Categories.py", label="What Does the EJI Mean?", icon="🌡️")
 
 # ------------------------------
-# Load Data
-# ------------------------------
-# ------------------------------
-# Load Data
+# Load Data (Map-Free Version)
 # ------------------------------
 @st.cache_data
 def load_data():
-    """Loads state, county, tract data, and GeoJSON for analysis."""
+    """Loads state, county, and tract data (No GeoJSON for speed)."""
     
-    # WE USE THE 'raw.githubusercontent.com' DOMAIN FOR RAW DATA
-    # REPLACE 'YOUR_USERNAME' WITH YOUR ACTUAL GITHUB USERNAME IF NEEDED
+    # Using RAW links to ensure stability
     base_url = "https://raw.githubusercontent.com/nhenry5/rc-EJI-Visualization-NM-2try/main"
 
-    # Construct the URLs
     state_url = f"{base_url}/data/2024/clean/2024EJI_StateAverages_RPL.csv"
     county_url = f"{base_url}/data/2024/clean/2024EJI_NewMexico_CountyMeans.csv"
     tract_data_url = f"{base_url}/data/2024/raw/2024EJI_NM_TRACTS.csv"
-    geojson_url = f"{base_url}/data/2024/raw/nm_tracts.geojson"
 
     state_df = pd.read_csv(state_url)
     county_df = pd.read_csv(county_url)
     
-    # FIX: Read 'GEOID' as string to keep zeros, then rename it to 'TRACT_FIPS'
+    # We rename GEOID to TRACT_FIPS immediately to prevent errors later
     tract_df = pd.read_csv(tract_data_url, dtype={'GEOID': str})
     tract_df.rename(columns={'GEOID': 'TRACT_FIPS'}, inplace=True)
 
-    with st.spinner("Loading GeoJSON boundaries..."):
-        import requests
-        response = requests.get(geojson_url)
-        nm_geojson = response.json()
-
-    return state_df, county_df, tract_df, nm_geojson
+    return state_df, county_df, tract_df
 
 try:
-    state_df, county_df, tract_df, nm_geojson = load_data()
+    state_df, county_df, tract_df = load_data()
 except Exception as e:
     st.error(f"Error loading data: {e}")
     st.stop()
 
+# ------------------------------
+# Data Pre-Processing
+# ------------------------------
 rename_map = {
     "Mean_EJI": "RPL_EJI",
     "Mean_EBM": "RPL_EBM",
@@ -107,6 +97,7 @@ rename_map = {
     "Mean_EJI_CBM": "RPL_EJI_CBM"
 }
 
+# Standardize columns in tract data if needed
 if 'RPL_EJI' not in tract_df.columns:
     tract_df.rename(columns={
         "RPL_THEME_EJI": "RPL_EJI",
@@ -124,8 +115,8 @@ metrics = ["RPL_EJI", "RPL_EBM", "RPL_SVM", "RPL_HVM", "RPL_CBM", "RPL_EJI_CBM"]
 counties = sorted(county_df["County"].dropna().unique())
 states = sorted(state_df["State"].dropna().unique())
 
-# FIX: 'parameter1' was defined twice in your code. I kept the one that includes 'Test & Map'.
-parameter1 = ["Test & Map", "New Mexico", "County"]
+# Updated Parameter List (Removed 'Map')
+parameter1 = ["Hypothesis Test", "New Mexico", "County"]
 
 pretty = {
     "RPL_EJI": "Overall EJI",
@@ -214,7 +205,6 @@ def build_texts_and_colors(colors, area_label, values):
     for c, v in zip(colors, values):
         if pd.isna(v):
             texts.append("No Data")
-            # FIX: You had 'fonts.append' twice here, which would misalign the lists. Removed one.
             fonts.append(get_theme_color()) 
         else:
             val_str = f"{v:.3f}"
@@ -260,7 +250,6 @@ def plot_single_chart(title, data_values, area_label=None):
         barmode="overlay",
         legend=dict(orientation="h", y=-0.2, x=0.5, xanchor="center")
     )
-    # FIX: Removed 'st.plotly_chart(fig, width="stretch")'. 'width="stretch"' is not a valid parameter for Streamlit.
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_comparison(data1, data2, label1, label2):
@@ -319,12 +308,11 @@ def plot_comparison(data1, data2, label1, label2):
         xaxis_title="Environmental Justice Index Metric",
         legend=dict(orientation="h", y=-0.2, x=0.5, xanchor="center")
     )
-    # FIX: Removed invalid 'width="stretch"' line.
     st.plotly_chart(fig, use_container_width=True)
     st.caption(f"_Note: {label1} is represented by the darker colors; {label2} by the lighter colors._")
 
 # ------------------------------
-# Analysis Functions
+# Analysis Functions (T-Test Only)
 # ------------------------------
 def run_test(df, group_column, target_column, threshold=0.75):
     """Classifies tracts based on the Socioeconomic Vulnerability and performs T-test."""
@@ -342,41 +330,11 @@ def run_test(df, group_column, target_column, threshold=0.75):
     t_stat, p_value = stats.ttest_ind(low_income_ej, other_ej, equal_var=False)
     return low_income_ej.mean(), other_ej.mean(), t_stat, p_value, df
 
-def plot_nm_map(df, geojson, color_column, title):
-    """Creates a Choropleth map of NM Census Tracts based on EJI score."""
-    df['TRACT_FIPS'] = df['TRACT_FIPS'].astype(str).str.zfill(11)
-    fig = px.choropleth(
-        df,
-        geojson=geojson,
-        locations='TRACT_FIPS',
-        featureidkey="properties.GEOID",
-        color=color_column,
-        color_continuous_scale="Viridis",
-        range_color=(0, 1),
-        scope="usa",
-        title=title,
-        hover_data={
-            'RPL_EJI': ':.3f',
-            'RPL_SVM': ':.3f',
-            'Is_Low_Income_Tract': True,
-            'TRACT_FIPS': False
-        }
-    )
-    fig.update_geos(
-        fitbounds="locations", visible=False,
-        lataxis_range=[31, 38],
-        lonaxis_range=[-110, -102]
-    )
-    fig.update_layout(margin={"r":0,"t":50,"l":0,"b":0})
-    st.plotly_chart(fig, use_container_width=True)
-
-
 # ------------------------------
 # Main App Layout 
 # ------------------------------
 st.title("📊 Environmental Justice Index Visualization (New Mexico)")
 
-# FIX: You had duplicate text blocks here. I combined them into one clean block.
 st.info("""
 **Interpreting the EJI Score:** Lower EJI values (closer to 0) indicate *lower cumulative environmental and social burdens* — generally a good outcome.  
 Higher EJI values (closer to 1) indicate *higher cumulative burdens and vulnerabilities* — generally a worse outcome.
@@ -387,16 +345,15 @@ st.info("🔴 Rows highlighted in red represent areas with **Very High Concern/B
 
 selected_parameter = st.selectbox("View EJI data for:", parameter1)
 
-# FIX: Major logic repair here. The previous code had "if County" then "if Test & Map" nested inside it illogically.
-# I have separated them into a clean if/elif/else block so the app works correctly.
-
-if selected_parameter == "Test & Map":
-    st.header("🔬 Test: Low-Income vs. Other Tracts")
+if selected_parameter == "Hypothesis Test":
+    st.header("🔬 Statistical Test: Low-Income vs. Other Tracts")
     st.markdown("""
         **Hypothesis:** Census Tracts with high **Social Vulnerability** (our proxy for low-income, defined as $\ge$ 0.75 percentile rank nationally) will have a significantly higher **Overall EJI score**.
     """)
 
-    mean_low_income, mean_other, t_stat, p_value, tract_df_classified = run_test(tract_df.copy(), 'RPL_SVM', 'RPL_EJI', 0.75)
+    # Run the test
+    mean_low_income, mean_other, t_stat, p_value, _ = run_test(tract_df.copy(), 'RPL_SVM', 'RPL_EJI', 0.75)
+    
     if mean_low_income is not None:
         col_mean, col_t = st.columns(2)
         with col_mean:
@@ -411,24 +368,16 @@ if selected_parameter == "Test & Map":
             )
         with col_t:
             st.metric("T-Statistic", f"{t_stat:.2f}", help="Measures the magnitude of difference between group means.")
-            st.metric("P-Value", f"{p_value:.4f}", help="P-value < 0.05 indicates the difference is statistically significant.")
+            st.metric("P-Value", f"{p_value:.4e}", help="P-value < 0.05 indicates the difference is statistically significant.")
 
             st.write("---")
             if p_value < 0.05:
-                st.success(f"**Conclusion:** The difference in EJI scores is **statistically significant** (p = {p_value:.4f}). This confirms the test.")
+                st.success(f"**Conclusion:** The difference in EJI scores is **statistically significant** (p < 0.05). This confirms that socially vulnerable communities in NM face disproportionately higher environmental burdens.")
             else:
                 st.warning(f"**Conclusion:** The difference is not statistically significant (p = {p_value:.4f}).")
-
-        st.divider()
-        st.markdown("### 🗺️ Choropleth Map: Overall EJI Burden by Census Tract")
-        plot_nm_map(
-            tract_df_classified,
-            nm_geojson,
-            'RPL_EJI',
-            'Overall Environmental Justice Burden in New Mexico'
-        )
+        
     else:
-        st.error("Cannot run hypothesis test. Check your Census Tract data file for 'RPL_SVM' and 'RPL_EJI' columns and ensure no NaN values prevented the test.")
+        st.error("Cannot run hypothesis test. Check your Census Tract data file for 'RPL_SVM' and 'RPL_EJI' columns.")
 
 elif selected_parameter == "County":
     selected_county = st.selectbox("Select a New Mexico County:", counties)
