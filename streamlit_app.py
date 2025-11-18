@@ -69,9 +69,10 @@ def load_data():
     """Loads state, county, tract data, and GeoJSON for analysis."""
     
     # WE USE THE 'raw.githubusercontent.com' DOMAIN FOR RAW DATA
+    # REPLACE 'YOUR_USERNAME' WITH YOUR ACTUAL GITHUB USERNAME IF NEEDED
     base_url = "https://raw.githubusercontent.com/nhenry5/rc-EJI-Visualization-NM-2try/main"
 
-    # Construct the URLs using the base_url to ensure they are all correct
+    # Construct the URLs
     state_url = f"{base_url}/data/2024/clean/2024EJI_StateAverages_RPL.csv"
     county_url = f"{base_url}/data/2024/clean/2024EJI_NewMexico_CountyMeans.csv"
     tract_data_url = f"{base_url}/data/2024/raw/2024EJI_NM_TRACTS.csv"
@@ -80,11 +81,11 @@ def load_data():
     state_df = pd.read_csv(state_url)
     county_df = pd.read_csv(county_url)
     
-    # Ensure tract FIPS are read as strings to keep leading zeros
-    tract_df = pd.read_csv(tract_data_url, dtype={'TRACT_FIPS': str})
+    # FIX: Read 'GEOID' as string to keep zeros, then rename it to 'TRACT_FIPS'
+    tract_df = pd.read_csv(tract_data_url, dtype={'GEOID': str})
+    tract_df.rename(columns={'GEOID': 'TRACT_FIPS'}, inplace=True)
 
     with st.spinner("Loading GeoJSON boundaries..."):
-        # Load GeoJSON directly from the URL
         import requests
         response = requests.get(geojson_url)
         nm_geojson = response.json()
