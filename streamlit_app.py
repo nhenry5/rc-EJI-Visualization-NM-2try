@@ -304,7 +304,7 @@ def plot_comparison(data1, data2, label1, label2):
     st.caption(f"_Note: {label1} is represented by the darker colors; {label2} by the lighter colors._")
 
 # ------------------------------
-# Analysis Functions (T-Test Only)
+# Analysis Functions
 # ------------------------------
 def run_test(df, group_column, target_column, threshold=0.75):
     """Classifies tracts based on the Socioeconomic Vulnerability and performs T-test."""
@@ -359,7 +359,7 @@ if selected_parameter == "Test":
                 f"{mean_other:.3f}",
             )
         with col_t:
-            st.metric("T-Statistic", f"{t_stat:.2f}", help="Measures the magnitude of difference between group means.")
+            st.metric("T-Statistic", f"{t_stat:.2f}", help="Measures the magnitude of difference between the groups' means.")
             st.metric("P-Value", f"{p_value:.4e}", help="P-value < 0.05 indicates the difference is statistically significant.")
 
             st.write("---")
