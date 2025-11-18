@@ -332,15 +332,15 @@ st.info("""
 Higher EJI values (closer to 1) indicate *higher cumulative burdens and vulnerabilities* — generally a worse outcome.
 """)
 
-st.write("Use the dropdowns below to explore data for **New Mexico**, specific **counties**, or view the final **Hypothesis Test** results.")
+st.write("Use the dropdowns below to explore data for **New Mexico**, specific **counties**, or view the final **Test** results.")
 st.info("🔴 Rows highlighted in red represent areas with **Very High Concern/Burden (EJI ≥ 0.76)**.")
 
 selected_parameter = st.selectbox("View EJI data for:", parameter1)
 
-if selected_parameter == "Hypothesis Test":
+if selected_parameter == "Test":
     st.header("🔬 Statistical Test: Low-Income vs. Other Tracts")
     st.markdown("""
-        **Hypothesis:** Census Tracts with high **Social Vulnerability** (our proxy for low-income, defined as $\ge$ 0.75 percentile rank nationally) will have a significantly higher **Overall EJI score**.
+        **Asumption:** Census Tracts with high **Social Vulnerability** (our proxy for low-income, defined as $\ge$ 0.75 percentile rank nationally) will have a significantly higher **Overall EJI score**.
     """)
 
     # Run the test
@@ -364,12 +364,12 @@ if selected_parameter == "Hypothesis Test":
 
             st.write("---")
             if p_value < 0.05:
-                st.success(f"**Conclusion:** The difference in EJI scores is **statistically significant** (p < 0.05). This confirms that socially vulnerable communities in NM face disproportionately higher environmental burdens.")
+                st.success(f"**Conclusion:** The difference in the EJI scores is **statistically significant** (p < 0.05). This confirms that socially vulnerable communities in NM face disproportionately higher environmental burdens.")
             else:
                 st.warning(f"**Conclusion:** The difference is not statistically significant (p = {p_value:.4f}).")
         
     else:
-        st.error("Cannot run hypothesis test. Check your Census Tract data file for 'RPL_SVM' and 'RPL_EJI' columns.")
+        st.error("Cannot run test. Check your Census Tract data file for 'RPL_SVM' and 'RPL_EJI' columns.")
 
 elif selected_parameter == "County":
     selected_county = st.selectbox("Select a New Mexico County:", counties)
@@ -396,7 +396,7 @@ elif selected_parameter == "County":
                     comp_values = comp_row[metrics].iloc[0]
                     plot_comparison(county_values, comp_values, selected_county, comp_county)
 
-else: # This catches "New Mexico" (or any fallback)
+else:
     nm_row = state_df[state_df["State"].str.strip().str.lower() == "new mexico"]
     if nm_row.empty:
         st.warning("No New Mexico data found.")
