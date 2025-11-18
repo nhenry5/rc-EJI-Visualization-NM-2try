@@ -57,15 +57,13 @@ with st.sidebar:
     st.page_link("pages/2_EJI_Scale_and_Categories.py", label="What Does the EJI Mean?", icon="🌡️")
 
 # ------------------------------
-# Load Data (Map-Free Version)
+# Load Data
 # ------------------------------
 @st.cache_data
 def load_data():
     """Loads state, county, and tract data (No GeoJSON for speed)."""
     
-    # Using RAW links to ensure stability
     base_url = "https://raw.githubusercontent.com/nhenry5/rc-EJI-Visualization-NM-2try/main"
-
     state_url = f"{base_url}/data/2024/clean/2024EJI_StateAverages_RPL.csv"
     county_url = f"{base_url}/data/2024/clean/2024EJI_NewMexico_CountyMeans.csv"
     tract_data_url = f"{base_url}/data/2024/raw/2024EJI_NM_TRACTS.csv"
@@ -73,7 +71,6 @@ def load_data():
     state_df = pd.read_csv(state_url)
     county_df = pd.read_csv(county_url)
     
-    # We rename GEOID to TRACT_FIPS immediately to prevent errors later
     tract_df = pd.read_csv(tract_data_url, dtype={'GEOID': str})
     tract_df.rename(columns={'GEOID': 'TRACT_FIPS'}, inplace=True)
 
@@ -85,9 +82,6 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     st.stop()
 
-# ------------------------------
-# Data Pre-Processing
-# ------------------------------
 rename_map = {
     "Mean_EJI": "RPL_EJI",
     "Mean_EBM": "RPL_EBM",
@@ -97,7 +91,6 @@ rename_map = {
     "Mean_EJI_CBM": "RPL_EJI_CBM"
 }
 
-# Standardize columns in tract data if needed
 if 'RPL_EJI' not in tract_df.columns:
     tract_df.rename(columns={
         "RPL_THEME_EJI": "RPL_EJI",
@@ -115,8 +108,7 @@ metrics = ["RPL_EJI", "RPL_EBM", "RPL_SVM", "RPL_HVM", "RPL_CBM", "RPL_EJI_CBM"]
 counties = sorted(county_df["County"].dropna().unique())
 states = sorted(state_df["State"].dropna().unique())
 
-# Updated Parameter List (Removed 'Map')
-parameter1 = ["Hypothesis Test", "New Mexico", "County"]
+parameter1 = ["Test", "New Mexico", "County"]
 
 pretty = {
     "RPL_EJI": "Overall EJI",
