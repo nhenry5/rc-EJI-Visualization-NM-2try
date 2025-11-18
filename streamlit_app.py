@@ -61,22 +61,33 @@ with st.sidebar:
 # ------------------------------
 # Load Data
 # ------------------------------
+# ------------------------------
+# Load Data
+# ------------------------------
 @st.cache_data
 def load_data():
     """Loads state, county, tract data, and GeoJSON for analysis."""
-    base_url = "https://github.com/nhenry5/rc-EJI-Visualization-NM-2try/raw/refs/heads/main"
-    state_url = "https://github.com/nhenry5/rc-EJI-Visualization-NM-2try/blob/main/data/2024/clean/2024EJI_StateAverages_RPL.csv"
-    county_url = "https://github.com/nhenry5/rc-EJI-Visualization-NM-2try/blob/main/data/2024/clean/2024EJI_NewMexico_CountyMeans.csv"
-    tract_data_url = "https://github.com/nhenry5/rc-EJI-Visualization-NM-2try/blob/main/data/2024/raw/2024EJI_NM_TRACTS.csv"
-    geojson_url = "https://github.com/nhenry5/rc-EJI-Visualization-NM-2try/blob/main/data/2024/raw/nm_tracts.geojson"
+    
+    # WE USE THE 'raw.githubusercontent.com' DOMAIN FOR RAW DATA
+    base_url = "https://raw.githubusercontent.com/nhenry5/rc-EJI-Visualization-NM-2try/main"
+
+    # Construct the URLs using the base_url to ensure they are all correct
+    state_url = f"{base_url}/data/2024/clean/2024EJI_StateAverages_RPL.csv"
+    county_url = f"{base_url}/data/2024/clean/2024EJI_NewMexico_CountyMeans.csv"
+    tract_data_url = f"{base_url}/data/2024/raw/2024EJI_NM_TRACTS.csv"
+    geojson_url = f"{base_url}/data/2024/raw/nm_tracts.geojson"
 
     state_df = pd.read_csv(state_url)
     county_df = pd.read_csv(county_url)
+    
+    # Ensure tract FIPS are read as strings to keep leading zeros
     tract_df = pd.read_csv(tract_data_url, dtype={'TRACT_FIPS': str})
 
     with st.spinner("Loading GeoJSON boundaries..."):
-        geojson_raw = pd.read_json(geojson_url)
-        nm_geojson = json.loads(geojson_raw.to_json(orient="records"))[0]
+        # Load GeoJSON directly from the URL
+        import requests
+        response = requests.get(geojson_url)
+        nm_geojson = response.json()
 
     return state_df, county_df, tract_df, nm_geojson
 
